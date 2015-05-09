@@ -1,0 +1,25 @@
+{
+    "name": "foobubble",
+    "version": "0.0.1",
+    "description": "webrtc description",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lucaslouca/"
+    },
+    "keywords": [
+        "webrtc",
+        "videochat"
+    ],
+    "author": "lucaslouca",
+    "license": "MIT",
+    "dependencies": {
+        "node-static": "~0.7.1",
+        "socket.io": "~0.9.16",
+        "express": "~3.4.0",
+        "ejs": "~1.0.0"
+    }
+}

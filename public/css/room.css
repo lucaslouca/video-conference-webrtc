@@ -1,0 +1,86 @@
+html {
+	font-size: 16px;
+	height:100%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+}
+ 
+body {
+	margin: 0;
+	padding: 0;
+	text-rendering: optimizeLegibility;	
+	background-color: #f6f6f6;
+	width:100%;
+	height:100%;
+
+}
+
+.container {
+	display: table;
+	width:100%;
+	height:100%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+/********************** VIDEO ELEMENTS **************************/
+video {
+	outline:none;
+}
+
+#videos {
+	display:table-cell;
+	vertical-align: middle;
+	text-align: center;
+    width: 100%;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+#videosWrapper {
+    position: relative;
+    display:inline-block;
+    text-align: center;
+}
+
+.videoBox {
+    border-radius: 5px;
+	width:100%;
+    border:10px #E8E8E8 solid;
+    vertical-align:middle;
+    -webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+.videoWrap {
+    display: inline-block;
+    margin:0.5em;
+    padding:1px;
+    background-color: #29bbff;
+    border-radius: 5px;
+}
+
+/* we have exactly two videos */
+#localVideoWrap:first-child:nth-last-child(2) {
+    position:absolute;
+    bottom:3em;
+    right:3em;
+    height:auto;
+    margin:0;
+    padding:1px;
+    background-color: rgba(255,255,255,0.5);
+    border-radius: 0;
+}
+	
+#localVideoWrap:first-child:nth-last-child(2) .videoBox{
+    border:none;
+    border-radius: 0;
+}
