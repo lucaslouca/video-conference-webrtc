@@ -3,7 +3,7 @@ Complete client/server application demonstrating how to setup a video conference
 
 <a href="http://www.foobubble.com" target="_blank">Demo</a>
 
-<img src="https://cloud.githubusercontent.com/assets/10542894/6098126/5b1ea5d4-afd5-11e4-8665-53b481bab334.png" width="450"/>
+<img src="https://cloud.githubusercontent.com/assets/10542894/7550897/538ec66a-f674-11e4-9f52-b0f5a5b9911d.png" width="450"/>
 
 ## How to use
 
