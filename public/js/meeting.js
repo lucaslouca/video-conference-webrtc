@@ -246,7 +246,6 @@ var Meeting = function (socketioHost) {
 
         if (!turnExists) {
             console.log('Getting TURN server from ', turn_url);
-            // No TURN server. Get one from computeengineondemand.appspot.com:
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function(){
                 if (xhr.readyState === 4 && xhr.status === 200) {
