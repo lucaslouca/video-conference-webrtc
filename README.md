@@ -1,6 +1,13 @@
 # video-conference-webrtc
 Complete client/server application demonstrating how to setup a video conference with multiple peers using WebRTC.
 
+## What the app does
+This sample code demonstrates a client/server architecture running on <a href="https://nodejs.org" target="_blank">Node.js</a> for setting up video conferences with the help of 
+<a href="http://socket.io" target="_blank">Socket.IO</a> and <a href="http://www.webrtc.org" target="_blank">WebRTC</a>.
+
+<br><br>
+The app generates a new room when a peer visits <a href="http://127.0.0.1:1337/" target="_blank">http://127.0.0.1:1337/</a>, which can then be used to invite others to the video conference.
+
 <a href="http://www.foobubble.com" target="_blank">Demo</a>
 
 <img src="https://cloud.githubusercontent.com/assets/10542894/7550897/538ec66a-f674-11e4-9f52-b0f5a5b9911d.png" width="450"/>
