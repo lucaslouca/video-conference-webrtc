@@ -11,6 +11,8 @@ Below is a screenshot of a sample room (<a href="http://127.0.0.1:1337/jk4qhh" t
 
 A full working demo is available at <a href="http://www.foobubble.com" target="_blank">FooBubble.com</a>.
 
+At the moment WebRTC is supported only by a limited number of browsers: Chrome, Firefox and Opera.
+
 ## How to run the code
 1. Clone the repo: `$ git clone https://github.com/lucaslouca/video-conference-webrtc.git` 
 2. `$ cd video-conference-webrtc `
