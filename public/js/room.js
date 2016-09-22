@@ -20,6 +20,10 @@ $( document ).ready(function() {
     		$("#videoMenu").on("click",function callback(e) {
 				toggleVideo();
     		});
+
+
+    		 $("#localVideo").prop('muted', true);
+    		 
 	    }
 	);
 	
