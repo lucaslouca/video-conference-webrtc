@@ -21,9 +21,8 @@ $( document ).ready(function() {
 				toggleVideo();
     		});
 
+			$("#localVideo").prop('muted', true);
 
-    		 $("#localVideo").prop('muted', true);
-    		 
 	    }
 	);
 	
