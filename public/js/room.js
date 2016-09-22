@@ -95,11 +95,11 @@ function adjustVideoSize() {
 	    $('#videosWrapper').find("br").remove();
 		$('.videoWrap:nth-child('+numOfColumns+'n)').after("<br>");
 	} else if (numOfVideos == 2) {
-		$(".videoWrap").width(640);
+		$(".videoWrap").width('auto');
 		$("#localVideoWrap").css("width", 20+"%");
 		$('#videosWrapper').find("br").remove();
 	} else {
-		$("#localVideoWrap").width(640);
+		$("#localVideoWrap").width('auto');
 		$('#videosWrapper').find("br").remove();
 	}
 }
