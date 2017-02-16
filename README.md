@@ -20,4 +20,4 @@ At the moment WebRTC is supported only by a limited number of browsers: Chrome, 
 4. `$ node server.js`
 5. Access the app from a WebRTC capable webbrowser through <a href="http://127.0.0.1:1337/" target="_blank">http://127.0.0.1:1337/</a>
 
-Note: If you are sitting behind a corporate proxy make sure to use `npm config set proxy http://"username:password;"@proxy-server.com:8080` first.
+Note: If you are sitting behind a corporate proxy make sure to use `npm config set proxy http://"username:password"@proxy-server.com:8080` first.
