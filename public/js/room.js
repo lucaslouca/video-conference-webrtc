@@ -41,6 +41,11 @@ $( document ).ready(function() {
 			console.log("Chat is ready");
 	    }
 	);
+
+	meeting.onChatNotReady(function() {
+			console.log("Chat is not ready");
+	    }
+	);
 	
     var room = window.location.pathname.match(/([^\/]*)\/*$/)[1];
 	meeting.joinRoom(room);

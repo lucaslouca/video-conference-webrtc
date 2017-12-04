@@ -198,9 +198,9 @@ var Meeting = function (socketioHost) {
                 _offerChannels[partID].on('message', function (msg){
                     if (msg.dest===_myID) {
                         if (msg.type === 'answer') {
-                            _opc[msg.from].setRemoteDescription(new RTCSessionDescription(msg.snDescription),
-                                                               setRemoteDescriptionSuccess, 
-                                                               setRemoteDescriptionError);
+                            _opc[msg.from].setRemoteDescription(new RTCSessionDescription(msg.snDescription))
+                            				.then(setRemoteDescriptionSuccess)
+                                                        .catch(setRemoteDescriptionError);
                         } else if (msg.type === 'candidate') {
                             var candidate = new RTCIceCandidate({sdpMLineIndex: msg.label, candidate: msg.candidate});
                             console.log('got ice candidate from '+msg.from);
@@ -360,7 +360,9 @@ var Meeting = function (socketioHost) {
         _apc[to].onaddstream = handleRemoteStreamAdded(to);
         _apc[to].onremovestream = handleRemoteStreamRemoved;
         _apc[to].addStream(_localStream);
-        _apc[to].setRemoteDescription(new RTCSessionDescription(sdp.snDescription), setRemoteDescriptionSuccess, setRemoteDescriptionError);
+        _apc[to].setRemoteDescription(new RTCSessionDescription(sdp.snDescription))
+                .then(setRemoteDescriptionSuccess)
+                .catch(setRemoteDescriptionError);
 
 		_apc[to].ondatachannel = gotReceiveChannel(to);
 		
