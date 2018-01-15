@@ -51,8 +51,10 @@ var Meeting = function (socketioHost) {
         // Open up a private communication channel
         initPrivateChannel();
 
-        // Get local media data
-        getUserMedia(_constraints, handleUserMedia, handleUserMediaError);
+        navigator.mediaDevices.getUserMedia(_constraints)
+                                .then(handleUserMedia)
+                                .catch(handleUserMediaError);
+
 
         window.onbeforeunload = function(e){
             _defaultChannel.emit('message',{type: 'bye', from:_myID});
@@ -196,9 +198,9 @@ var Meeting = function (socketioHost) {
                 _offerChannels[partID].on('message', function (msg){
                     if (msg.dest===_myID) {
                         if (msg.type === 'answer') {
-                            _opc[msg.from].setRemoteDescription(new RTCSessionDescription(msg.snDescription),
-                                                               setRemoteDescriptionSuccess, 
-                                                               setRemoteDescriptionError);
+                            _opc[msg.from].setRemoteDescription(new RTCSessionDescription(msg.snDescription))
+                            				.then(setRemoteDescriptionSuccess)
+                                                        .catch(setRemoteDescriptionError);
                         } else if (msg.type === 'candidate') {
                             var candidate = new RTCIceCandidate({sdpMLineIndex: msg.label, candidate: msg.candidate});
                             console.log('got ice candidate from '+msg.from);
@@ -342,7 +344,7 @@ var Meeting = function (socketioHost) {
                 // Set Opus as the preferred codec in SDP if Opus is present.
                 sessionDescription.sdp = preferOpus(sessionDescription.sdp);
 
-                _opc[participantId].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError);  
+                _opc[participantId].setLocalDescription(sessionDescription);  
                 console.log('Sending offer to channel '+ channel.name);
                 channel.emit('message', {snDescription: sessionDescription, from:_myID, type:'offer', dest:participantId});        
             }
@@ -358,16 +360,18 @@ var Meeting = function (socketioHost) {
         _apc[to].onaddstream = handleRemoteStreamAdded(to);
         _apc[to].onremovestream = handleRemoteStreamRemoved;
         _apc[to].addStream(_localStream);
-        _apc[to].setRemoteDescription(new RTCSessionDescription(sdp.snDescription), setRemoteDescriptionSuccess, setRemoteDescriptionError);
+        _apc[to].setRemoteDescription(new RTCSessionDescription(sdp.snDescription))
+                .then(setRemoteDescriptionSuccess)
+                .catch(setRemoteDescriptionError);
 
 		_apc[to].ondatachannel = gotReceiveChannel(to);
 		
         var onSuccess = function(channel) {
-            return function(sessionDescription) {87
+            return function(sessionDescription) {
                 // Set Opus as the preferred codec in SDP if Opus is present.
                 sessionDescription.sdp = preferOpus(sessionDescription.sdp);
 
-                _apc[to].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError); 
+                _apc[to].setLocalDescription(sessionDescription); 
                 console.log('Sending answer to channel '+ channel.name);
                 channel.emit('message', {snDescription:sessionDescription, from:_myID,  type:'answer', dest:to});
             }
@@ -411,7 +415,7 @@ var Meeting = function (socketioHost) {
     }
 
     function handleRemoteStreamAdded(from) {
-	    return function(event) {
+        return function(event) {
         	console.log('Remote stream added');
 			addRemoteVideo(event.stream, from);
 			_remoteStream = event.stream;

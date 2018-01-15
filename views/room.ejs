@@ -6,7 +6,7 @@
 		<meta name='viewport' content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1'>
 		<script>var HOST_ADDRESS='<%= hostAddress %>';</script>  
 		<script src='/socket.io/socket.io.js'></script>
-		<script src='/js/lib/adapter.js'></script>
+		<script src='/js/webrtc-adapter.js'></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>		
 		<script src='/js/meeting.js'></script>
 		<script src='/js/room.js'></script>
@@ -19,7 +19,7 @@
 			<div id="videos">
                 <div id="videosWrapper">
 				    <div id="localVideoWrap" class='videoWrap'>
-					    <video class="videoBox" id="localVideo" autoplay></video>
+					    <video class="videoBox" id="localVideo" autoplay playsinline></video>
 					</div>
                 </div>
 			</div>

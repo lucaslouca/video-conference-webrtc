@@ -11,7 +11,7 @@ $( document ).ready(function() {
 	
 	meeting.onLocalVideo(function(stream) {
 	        //alert(stream.getVideoTracks().length);
-	        document.querySelector('#localVideo').src = window.URL.createObjectURL(stream);
+	        document.querySelector('#localVideo').srcObject = stream;
 	        
 	        $("#micMenu").on("click",function callback(e) {
 				toggleMic();
@@ -41,6 +41,11 @@ $( document ).ready(function() {
 			console.log("Chat is ready");
 	    }
 	);
+
+	meeting.onChatNotReady(function() {
+			console.log("Chat is not ready");
+	    }
+	);
 	
     var room = window.location.pathname.match(/([^\/]*)\/*$/)[1];
 	meeting.joinRoom(room);
@@ -49,10 +54,12 @@ $( document ).ready(function() {
 
 function addRemoteVideo(stream, participantID) {
     var $videoBox = $("<div class='videoWrap' id='"+participantID+"'></div>");
-    var $video = $("<video class='videoBox' autoplay></video>");
-    $video.attr({"src": window.URL.createObjectURL(stream), "autoplay": "autoplay"});
+    var $video = $("<video class='videoBox' autoplay playsinline></video>");
+    $video.attr({"srcObject": stream, "autoplay": "autoplay", playsinline: 'playsinline'});
+    
     $videoBox.append($video);
 	$("#videosWrapper").append($videoBox);
+	$video[0].srcObject = stream;
 
 	adjustVideoSize();
 	
