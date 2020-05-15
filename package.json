@@ -24,6 +24,7 @@
         "socket.io": "~2.3.0",
         "utf-8-validate": "^5.0.2",
         "cors": "^2.8.1",
-        "winston": "*"
+        "winston": "*",
+        "minimist": ">=0.2.1"
     }
 }
