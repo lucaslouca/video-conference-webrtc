@@ -429,9 +429,8 @@ var Meeting = function (socketioHost) {
         return function (event) {
             console.log('Remote stream added');
 
-            if (!_remoteStream) {
-                _remoteStream = event.streams[0];
-            }
+            _remoteStream = event.streams[0];
+
 
             if (event.track.kind == "video") {
                 addRemoteVideo(_remoteStream, from);
