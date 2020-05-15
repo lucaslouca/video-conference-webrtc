@@ -1,14 +1,27 @@
 'use strict';
 
-var Meeting = function (socketioHost) { 
+var Meeting = function (socketioHost) {
     var exports = {};
-    
+
     var _isInitiator = false;
     var _localStream;
     var _remoteStream;
     var _turnReady;
-    var _pcConfig = {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
-    var _constraints = {video: true, audio:true};
+    var _pcConfig = {
+        'iceServers': [
+            {
+                'url': 'stun:stun.l.google.com:19302'
+            },
+            {
+                "urls": "turn:your-aws-instance:3478?transport=tcp",
+                "username": "username",
+                "credential": "password"
+            },
+            {
+                "urls": "stun:your-aws-instance:3478?transport=tcp"
+            }]
+    };
+    var _constraints = { video: true, audio: true };
     var _defaultChannel;
     var _privateAnswerChannel;
     var _offerChannels = {};
@@ -24,42 +37,42 @@ var Meeting = function (socketioHost) {
     var _onChatNotReadyCallback;
     var _onParticipantHangupCallback;
     var _host = socketioHost;
-    
+
     ////////////////////////////////////////////////
     // PUBLIC FUNCTIONS
     ////////////////////////////////////////////////
- 	 /**
-	 *
-	 * Add callback function to be called when a chat message is available.
-	 *
-	 * @param name of the room to join
-	 */   
+    /**
+  *
+  * Add callback function to be called when a chat message is available.
+  *
+  * @param name of the room to join
+  */
     function joinRoom(name) {
         _room = name;
-        
+
         _myID = generateID();
-        console.log('Generated ID: '+_myID);
-        
+        console.log('Generated ID: ' + _myID);
+
         // Open up a default communication channel
         initDefaultChannel();
 
         if (_room !== '') {
             console.log('Create or join room', _room);
-            _defaultChannel.emit('create or join', {room:_room, from:_myID});
+            _defaultChannel.emit('create or join', { room: _room, from: _myID });
         }
 
         // Open up a private communication channel
         initPrivateChannel();
 
         // Get local media data
-        getUserMedia(_constraints, handleUserMedia, handleUserMediaError);
+        navigator.mediaDevices.getUserMedia(_constraints).then(handleUserMedia, handleUserMediaError);
 
-        window.onbeforeunload = function(e){
-            _defaultChannel.emit('message',{type: 'bye', from:_myID});
+        window.onbeforeunload = function (e) {
+            _defaultChannel.emit('message', { type: 'bye', from: _myID });
         }
     }
-    
-    
+
+
     /**
 	 *
 	 * Send a chat message to all channels.
@@ -67,43 +80,43 @@ var Meeting = function (socketioHost) {
 	 * @param message String message to be send
 	 */
     function sendChatMessage(message) {
-	    console.log("Sending "+message)
+        console.log("Sending " + message)
         for (var channel in _sendChannel) {
-	        if (_sendChannel.hasOwnProperty(channel)) {
-		        _sendChannel[channel].send(message);
-		    }
+            if (_sendChannel.hasOwnProperty(channel)) {
+                _sendChannel[channel].send(message);
+            }
         }
     }
-    
+
     /**
 	 *
 	 * Toggle microphone availability.
 	 *
 	 */
     function toggleMic() {
-		var tracks = _localStream.getTracks();
-		for (var i = 0; i < tracks.length; i++) {
-			if (tracks[i].kind=="audio") {
-				tracks[i].enabled = !tracks[i].enabled;	
-			}
-		}
-	}
-    
-    
+        var tracks = _localStream.getTracks();
+        for (var i = 0; i < tracks.length; i++) {
+            if (tracks[i].kind == "audio") {
+                tracks[i].enabled = !tracks[i].enabled;
+            }
+        }
+    }
+
+
     /**
 	 *
 	 * Toggle video availability.
 	 *
 	 */
     function toggleVideo() {
-		var tracks = _localStream.getTracks();
-		for (var i = 0; i < tracks.length; i++) {
-			if (tracks[i].kind=="video") {
-				tracks[i].enabled = !tracks[i].enabled;	
-			}
-		}
-	}
-	
+        var tracks = _localStream.getTracks();
+        for (var i = 0; i < tracks.length; i++) {
+            if (tracks[i].kind == "video") {
+                tracks[i].enabled = !tracks[i].enabled;
+            }
+        }
+    }
+
 	/**
 	 *
 	 * Add callback function to be called when remote video is available.
@@ -113,7 +126,7 @@ var Meeting = function (socketioHost) {
     function onRemoteVideo(callback) {
         _onRemoteVideoCallback = callback;
     }
-    
+
 	/**
 	 *
 	 * Add callback function to be called when local video is available.
@@ -123,7 +136,7 @@ var Meeting = function (socketioHost) {
     function onLocalVideo(callback) {
         _onLocalVideoCallback = callback;
     }
-    
+
     /**
 	 *
 	 * Add callback function to be called when chat is available.
@@ -131,9 +144,9 @@ var Meeting = function (socketioHost) {
 	 * @parama callback function of type function()
 	 */
     function onChatReady(callback) {
-	    _onChatReadyCallback = callback;
+        _onChatReadyCallback = callback;
     }
-    
+
     /**
 	 *
 	 * Add callback function to be called when chat is no more available.
@@ -141,9 +154,9 @@ var Meeting = function (socketioHost) {
 	 * @parama callback function of type function()
 	 */
     function onChatNotReady(callback) {
-	    _onChatNotReadyCallback = callback;
+        _onChatNotReadyCallback = callback;
     }
-    
+
     /**
 	 *
 	 * Add callback function to be called when a chat message is available.
@@ -153,7 +166,7 @@ var Meeting = function (socketioHost) {
     function onChatMessage(callback) {
         _onChatMessageCallback = callback;
     }
-    
+
     /**
 	 *
 	 * Add callback function to be called when a a participant left the conference.
@@ -161,47 +174,47 @@ var Meeting = function (socketioHost) {
 	 * @parama callback function of type function(participantID)
 	 */
     function onParticipantHangup(callback) {
-	    _onParticipantHangupCallback = callback;
+        _onParticipantHangupCallback = callback;
     }
-    
+
     ////////////////////////////////////////////////
     // INIT FUNCTIONS
     ////////////////////////////////////////////////
-    
+
     function initDefaultChannel() {
         _defaultChannel = openSignalingChannel('');
-        
-        _defaultChannel.on('created', function (room){
-          console.log('Created room ' + room);
-          _isInitiator = true;
+
+        _defaultChannel.on('created', function (room) {
+            console.log('Created room ' + room);
+            _isInitiator = true;
         });
 
-        _defaultChannel.on('join', function (room){
+        _defaultChannel.on('join', function (room) {
             console.log('Another peer made a request to join room ' + room);
         });
 
-        _defaultChannel.on('joined', function (room){
+        _defaultChannel.on('joined', function (room) {
             console.log('This peer has joined room ' + room);
         });
-        
-        _defaultChannel.on('message', function (message){
+
+        _defaultChannel.on('message', function (message) {
             console.log('Client received message:', message);
             if (message.type === 'newparticipant') {
                 var partID = message.from;
-                
+
                 // Open a new communication channel to the new participant
                 _offerChannels[partID] = openSignalingChannel(partID);
 
                 // Wait for answers (to offers) from the new participant
-                _offerChannels[partID].on('message', function (msg){
-                    if (msg.dest===_myID) {
+                _offerChannels[partID].on('message', function (msg) {
+                    if (msg.dest === _myID) {
                         if (msg.type === 'answer') {
                             _opc[msg.from].setRemoteDescription(new RTCSessionDescription(msg.snDescription),
-                                                               setRemoteDescriptionSuccess, 
-                                                               setRemoteDescriptionError);
+                                setRemoteDescriptionSuccess,
+                                setRemoteDescriptionError);
                         } else if (msg.type === 'candidate') {
-                            var candidate = new RTCIceCandidate({sdpMLineIndex: msg.label, candidate: msg.candidate});
-                            console.log('got ice candidate from '+msg.from);
+                            var candidate = new RTCIceCandidate({ sdpMLineIndex: msg.label, candidate: msg.candidate });
+                            console.log('got ice candidate from ' + msg.from);
                             _opc[msg.from].addIceCandidate(candidate, addIceCandidateSuccess, addIceCandidateError);
                         }
                     }
@@ -215,25 +228,25 @@ var Meeting = function (socketioHost) {
             }
         });
     }
-      
+
     function initPrivateChannel() {
         // Open a private channel (namespace = _myID) to receive offers
         _privateAnswerChannel = openSignalingChannel(_myID);
 
         // Wait for offers or ice candidates
-        _privateAnswerChannel.on('message', function (message){
-            if (message.dest===_myID) {
-                if(message.type === 'offer') {
+        _privateAnswerChannel.on('message', function (message) {
+            if (message.dest === _myID) {
+                if (message.type === 'offer') {
                     var to = message.from;
                     createAnswer(message, _privateAnswerChannel, to);
                 } else if (message.type === 'candidate') {
-                    var candidate = new RTCIceCandidate({sdpMLineIndex: message.label, candidate: message.candidate});
+                    var candidate = new RTCIceCandidate({ sdpMLineIndex: message.label, candidate: message.candidate });
                     _apc[message.from].addIceCandidate(candidate, addIceCandidateSuccess, addIceCandidateError);
                 }
             }
         });
     }
-    
+
     function requestTurn(turn_url) {
         var turnExists = false;
         for (var i in _pcConfig.iceServers) {
@@ -247,10 +260,10 @@ var Meeting = function (socketioHost) {
         if (!turnExists) {
             console.log('Getting TURN server from ', turn_url);
             var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function(){
+            xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     var turnServer = JSON.parse(xhr.responseText);
-                     console.log('Got TURN server: ', turnServer);
+                    console.log('Got TURN server: ', turnServer);
                     _pcConfig.iceServers.push({
                         'url': 'turn:' + turnServer.username + '@' + turnServer.turn,
                         'credential': turnServer.password
@@ -263,11 +276,11 @@ var Meeting = function (socketioHost) {
         }
     }
 
-    
+
     ///////////////////////////////////////////
     // UTIL FUNCTIONS
     ///////////////////////////////////////////
-    
+
     /**
 	 *
 	 * Call the registered _onRemoteVideoCallback
@@ -286,17 +299,17 @@ var Meeting = function (socketioHost) {
 	 * @return a random ID
 	 */
     function generateID() {
-        var s4 = function() {
+        var s4 = function () {
             return Math.floor(Math.random() * 0x10000).toString(16);
         };
         return s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4();
     }
 
-    
+
     ////////////////////////////////////////////////
     // COMMUNICATION FUNCTIONS
     ////////////////////////////////////////////////
-    
+
     /**
 	 *
 	 * Connect to the server and open a signal channel using channel as the channel's name.
@@ -305,7 +318,8 @@ var Meeting = function (socketioHost) {
 	 */
     function openSignalingChannel(channel) {
         var namespace = _host + '/' + channel;
-        var sckt = io.connect(namespace);
+        console.log('Opening private channel:' + namespace);
+        var sckt = io.connect(namespace, { 'forceNew': true, 'transports': ['websocket'] });
         return sckt;
     }
 
@@ -316,35 +330,35 @@ var Meeting = function (socketioHost) {
 	 * @param participantId the participant's unique ID we want to send an offer
 	 */
     function createOffer(participantId) {
-        console.log('Creating offer for peer '+participantId);
+        console.log('Creating offer for peer ' + participantId);
         _opc[participantId] = new RTCPeerConnection(_pcConfig);
         _opc[participantId].onicecandidate = handleIceCandidateAnswerWrapper(_offerChannels[participantId], participantId);
-        _opc[participantId].onaddstream = handleRemoteStreamAdded(participantId);
-        _opc[participantId].onremovestream = handleRemoteStreamRemoved; 
+        _opc[participantId].ontrack = handleRemoteStreamAdded(participantId);
+        _opc[participantId].onremovestream = handleRemoteStreamRemoved;
         _opc[participantId].addStream(_localStream);
 
-		try {
-			// Reliable Data Channels not yet supported in Chrome
-			_sendChannel[participantId] = _opc[participantId].createDataChannel("sendDataChannel", {reliable: false});
-			_sendChannel[participantId].onmessage = handleMessage;
-			console.log('Created send data channel');
-		} catch (e) {
-			alert('Failed to create data channel. ' + 'You need Chrome M25 or later with RtpDataChannel enabled');
-			console.log('createDataChannel() failed with exception: ' + e.message);
-		}
-		_sendChannel[participantId].onopen = handleSendChannelStateChange(participantId);
-		_sendChannel[participantId].onclose = handleSendChannelStateChange(participantId);
+        try {
+            // Reliable Data Channels not yet supported in Chrome
+            _sendChannel[participantId] = _opc[participantId].createDataChannel("sendDataChannel", { reliable: false });
+            _sendChannel[participantId].onmessage = handleMessage;
+            console.log('Created send data channel');
+        } catch (e) {
+            alert('Failed to create data channel. ' + 'You need Chrome M25 or later with RtpDataChannel enabled');
+            console.log('createDataChannel() failed with exception: ' + e.message);
+        }
+        _sendChannel[participantId].onopen = handleSendChannelStateChange(participantId);
+        _sendChannel[participantId].onclose = handleSendChannelStateChange(participantId);
 
-        var onSuccess = function(participantId) {
-            return function(sessionDescription) {
+        var onSuccess = function (participantId) {
+            return function (sessionDescription) {
                 var channel = _offerChannels[participantId];
 
                 // Set Opus as the preferred codec in SDP if Opus is present.
                 sessionDescription.sdp = preferOpus(sessionDescription.sdp);
 
-                _opc[participantId].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError);  
-                console.log('Sending offer to channel '+ channel.name);
-                channel.emit('message', {snDescription: sessionDescription, from:_myID, type:'offer', dest:participantId});        
+                _opc[participantId].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError);
+                console.log('Sending offer to channel ' + channel.nsp);
+                channel.emit('message', { snDescription: sessionDescription, from: _myID, type: 'offer', dest: participantId });
             }
         }
 
@@ -352,24 +366,25 @@ var Meeting = function (socketioHost) {
     }
 
     function createAnswer(sdp, cnl, to) {
-        console.log('Creating answer for peer '+to);
+        console.log('Creating answer for peer ' + to);
         _apc[to] = new RTCPeerConnection(_pcConfig);
-        _apc[to].onicecandidate = handleIceCandidateAnswerWrapper(cnl, to);
-        _apc[to].onaddstream = handleRemoteStreamAdded(to);
+        _apc[to].ontrack = handleIceCandidateAnswerWrapper(cnl, to);
+        _apc[to].ontrack = handleRemoteStreamAdded(to);
         _apc[to].onremovestream = handleRemoteStreamRemoved;
         _apc[to].addStream(_localStream);
         _apc[to].setRemoteDescription(new RTCSessionDescription(sdp.snDescription), setRemoteDescriptionSuccess, setRemoteDescriptionError);
 
-		_apc[to].ondatachannel = gotReceiveChannel(to);
-		
-        var onSuccess = function(channel) {
-            return function(sessionDescription) {87
+        _apc[to].ondatachannel = gotReceiveChannel(to);
+
+        var onSuccess = function (channel) {
+            return function (sessionDescription) {
+                87
                 // Set Opus as the preferred codec in SDP if Opus is present.
                 sessionDescription.sdp = preferOpus(sessionDescription.sdp);
 
-                _apc[to].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError); 
-                console.log('Sending answer to channel '+ channel.name);
-                channel.emit('message', {snDescription:sessionDescription, from:_myID,  type:'answer', dest:to});
+                _apc[to].setLocalDescription(sessionDescription, setLocalDescriptionSuccess, setLocalDescriptionError);
+                console.log('Sending answer to channel ' + channel.nsp);
+                channel.emit('message', { snDescription: sessionDescription, from: _myID, type: 'answer', dest: to });
             }
         }
 
@@ -377,33 +392,33 @@ var Meeting = function (socketioHost) {
     }
 
     function hangup(from) {
-        console.log('Bye received from '+ from);
+        console.log('Bye received from ' + from);
 
-			if (_opc.hasOwnProperty(from)) {
-            	_opc[from].close();
-				_opc[from] = null;	
-			}
-            
-            if (_apc.hasOwnProperty(from)) {
-            	_apc[from].close();
-				_apc[from] = null;
-            }
+        if (_opc.hasOwnProperty(from)) {
+            _opc[from].close();
+            _opc[from] = null;
+        }
 
-			_onParticipantHangupCallback(from);
+        if (_apc.hasOwnProperty(from)) {
+            _apc[from].close();
+            _apc[from] = null;
+        }
+
+        _onParticipantHangupCallback(from);
     }
 
 
     ////////////////////////////////////////////////
     // HANDLERS
     ////////////////////////////////////////////////
-    
+
     // SUCCESS HANDLERS
 
     function handleUserMedia(stream) {
         console.log('Adding local stream');
         _onLocalVideoCallback(stream);
         _localStream = stream;
-        _defaultChannel.emit('message', {type:'newparticipant', from: _myID});
+        _defaultChannel.emit('message', { type: 'newparticipant', from: _myID });
     }
 
     function handleRemoteStreamRemoved(event) {
@@ -411,10 +426,16 @@ var Meeting = function (socketioHost) {
     }
 
     function handleRemoteStreamAdded(from) {
-	    return function(event) {
-        	console.log('Remote stream added');
-			addRemoteVideo(event.stream, from);
-			_remoteStream = event.stream;
+        return function (event) {
+            console.log('Remote stream added');
+
+            if (!_remoteStream) {
+                _remoteStream = event.streams[0];
+            }
+
+            if (event.track.kind == "video") {
+                addRemoteVideo(_remoteStream, from);
+            }
         }
     }
 
@@ -423,13 +444,15 @@ var Meeting = function (socketioHost) {
             console.log('handleIceCandidate event');
             if (event.candidate) {
                 channel.emit('message',
-                        {type: 'candidate',
+                    {
+                        type: 'candidate',
                         label: event.candidate.sdpMLineIndex,
                         id: event.candidate.sdpMid,
                         candidate: event.candidate.candidate,
-                        from: _myID, 
-                        dest:to}
-                    );
+                        from: _myID,
+                        dest: to
+                    }
+                );
 
             } else {
                 console.log('End of candidates.');
@@ -437,82 +460,82 @@ var Meeting = function (socketioHost) {
         }
     }
 
-    function setLocalDescriptionSuccess() {}
+    function setLocalDescriptionSuccess() { }
 
-    function setRemoteDescriptionSuccess() {}
+    function setRemoteDescriptionSuccess() { }
 
-    function addIceCandidateSuccess() {}
+    function addIceCandidateSuccess() { }
 
-	function gotReceiveChannel(id) {
-		return function(event) {
-		  	console.log('Receive Channel Callback');
-		  	_sendChannel[id] = event.channel;
-		  	_sendChannel[id].onmessage = handleMessage;
-		  	_sendChannel[id].onopen = handleReceiveChannelStateChange(id);
-		  	_sendChannel[id].onclose = handleReceiveChannelStateChange(id);
-	  	}
-	}
-	
-	function handleMessage(event) {
-	  	console.log('Received message: ' + event.data);
-	  	_onChatMessageCallback(event.data);
-	}
-	
-	function handleSendChannelStateChange(participantId) {
-		return function() {
-		  	var readyState = _sendChannel[participantId].readyState;
-		  	console.log('Send channel state is: ' + readyState);
-		  	
-		  	// check if we have at least one open channel before we set hat ready to false.
-		  	var open = checkIfOpenChannel();
-		  	enableMessageInterface(open);
-	  	}
-	}
-	
-	function handleReceiveChannelStateChange(participantId) {
-		return function() {
-		  	var readyState = _sendChannel[participantId].readyState;
-		  	console.log('Receive channel state is: ' + readyState);
-		  	
-		  	// check if we have at least one open channel before we set hat ready to false.
-		  	var open = checkIfOpenChannel();
-		  	enableMessageInterface(open);
-	  	}
-	}
-	
-	function checkIfOpenChannel() {
-		var open = false;
-	  	for (var channel in _sendChannel) {
-	        if (_sendChannel.hasOwnProperty(channel)) {
-		        open = (_sendChannel[channel].readyState == "open");
-		        if (open == true) {
-			        break;
-		        }
-		    }
+    function gotReceiveChannel(id) {
+        return function (event) {
+            console.log('Receive Channel Callback');
+            _sendChannel[id] = event.channel;
+            _sendChannel[id].onmessage = handleMessage;
+            _sendChannel[id].onopen = handleReceiveChannelStateChange(id);
+            _sendChannel[id].onclose = handleReceiveChannelStateChange(id);
         }
-        
+    }
+
+    function handleMessage(event) {
+        console.log('Received message: ' + event.data);
+        _onChatMessageCallback(event.data);
+    }
+
+    function handleSendChannelStateChange(participantId) {
+        return function () {
+            var readyState = _sendChannel[participantId].readyState;
+            console.log('Send channel state is: ' + readyState);
+
+            // check if we have at least one open channel before we set hat ready to false.
+            var open = checkIfOpenChannel();
+            enableMessageInterface(open);
+        }
+    }
+
+    function handleReceiveChannelStateChange(participantId) {
+        return function () {
+            var readyState = _sendChannel[participantId].readyState;
+            console.log('Receive channel state is: ' + readyState);
+
+            // check if we have at least one open channel before we set hat ready to false.
+            var open = checkIfOpenChannel();
+            enableMessageInterface(open);
+        }
+    }
+
+    function checkIfOpenChannel() {
+        var open = false;
+        for (var channel in _sendChannel) {
+            if (_sendChannel.hasOwnProperty(channel)) {
+                open = (_sendChannel[channel].readyState == "open");
+                if (open == true) {
+                    break;
+                }
+            }
+        }
+
         return open;
-	}
-	
-	function enableMessageInterface(shouldEnable) {
-	    if (shouldEnable) {
-			_onChatReadyCallback();
-	  	} else {
-	    	_onChatNotReadyCallback();
-	  	}
-	}
-    
+    }
+
+    function enableMessageInterface(shouldEnable) {
+        if (shouldEnable) {
+            _onChatReadyCallback();
+        } else {
+            _onChatNotReadyCallback();
+        }
+    }
+
     // ERROR HANDLERS
-    
-    function handleCreateOfferError(event){
+
+    function handleCreateOfferError(event) {
         console.log('createOffer() error: ', event);
     }
 
-    function handleCreateAnswerError(event){
+    function handleCreateAnswerError(event) {
         console.log('createAnswer() error: ', event);
     }
 
-    function handleUserMediaError(error){
+    function handleUserMediaError(error) {
         console.log('getUserMedia error: ', error);
     }
 
@@ -524,103 +547,103 @@ var Meeting = function (socketioHost) {
         console.log('setRemoteDescription error: ', error);
     }
 
-    function addIceCandidateError(error) {}
-    
-    
+    function addIceCandidateError(error) { }
+
+
     ////////////////////////////////////////////////
     // CODEC
     ////////////////////////////////////////////////
 
     // Set Opus as the default audio codec if it's present.
     function preferOpus(sdp) {
-      var sdpLines = sdp.split('\r\n');
-      var mLineIndex;
-      // Search for m line.
-      for (var i = 0; i < sdpLines.length; i++) {
-          if (sdpLines[i].search('m=audio') !== -1) {
-            mLineIndex = i;
-            break;
-          }
-      }
-      if (mLineIndex === null || mLineIndex === undefined) {
-        return sdp;
-      }
-
-      // If Opus is available, set it as the default in m line.
-      for (i = 0; i < sdpLines.length; i++) {
-        if (sdpLines[i].search('opus/48000') !== -1) {
-          var opusPayload = extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
-          if (opusPayload) {
-            sdpLines[mLineIndex] = setDefaultCodec(sdpLines[mLineIndex], opusPayload);
-          }
-          break;
+        var sdpLines = sdp.split('\r\n');
+        var mLineIndex;
+        // Search for m line.
+        for (var i = 0; i < sdpLines.length; i++) {
+            if (sdpLines[i].search('m=audio') !== -1) {
+                mLineIndex = i;
+                break;
+            }
         }
-      }
+        if (mLineIndex === null || mLineIndex === undefined) {
+            return sdp;
+        }
 
-      // Remove CN in m line and sdp.
-      sdpLines = removeCN(sdpLines, mLineIndex);
+        // If Opus is available, set it as the default in m line.
+        for (i = 0; i < sdpLines.length; i++) {
+            if (sdpLines[i].search('opus/48000') !== -1) {
+                var opusPayload = extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
+                if (opusPayload) {
+                    sdpLines[mLineIndex] = setDefaultCodec(sdpLines[mLineIndex], opusPayload);
+                }
+                break;
+            }
+        }
 
-      sdp = sdpLines.join('\r\n');
-      return sdp;
+        // Remove CN in m line and sdp.
+        sdpLines = removeCN(sdpLines, mLineIndex);
+
+        sdp = sdpLines.join('\r\n');
+        return sdp;
     }
 
     function extractSdp(sdpLine, pattern) {
-      var result = sdpLine.match(pattern);
-      return result && result.length === 2 ? result[1] : null;
+        var result = sdpLine.match(pattern);
+        return result && result.length === 2 ? result[1] : null;
     }
 
     // Set the selected codec to the first in m line.
     function setDefaultCodec(mLine, payload) {
-      var elements = mLine.split(' ');
-      var newLine = [];
-      var index = 0;
-      for (var i = 0; i < elements.length; i++) {
-        if (index === 3) { // Format of media starts from the fourth.
-          newLine[index++] = payload; // Put target payload to the first.
+        var elements = mLine.split(' ');
+        var newLine = [];
+        var index = 0;
+        for (var i = 0; i < elements.length; i++) {
+            if (index === 3) { // Format of media starts from the fourth.
+                newLine[index++] = payload; // Put target payload to the first.
+            }
+            if (elements[i] !== payload) {
+                newLine[index++] = elements[i];
+            }
         }
-        if (elements[i] !== payload) {
-          newLine[index++] = elements[i];
-        }
-      }
-      return newLine.join(' ');
+        return newLine.join(' ');
     }
 
     // Strip CN from sdp before CN constraints is ready.
     function removeCN(sdpLines, mLineIndex) {
-      var mLineElements = sdpLines[mLineIndex].split(' ');
-      // Scan from end for the convenience of removing an item.
-      for (var i = sdpLines.length-1; i >= 0; i--) {
-        var payload = extractSdp(sdpLines[i], /a=rtpmap:(\d+) CN\/\d+/i);
-        if (payload) {
-          var cnPos = mLineElements.indexOf(payload);
-          if (cnPos !== -1) {
-            // Remove CN payload from m line.
-            mLineElements.splice(cnPos, 1);
-          }
-          // Remove CN line in sdp
-          sdpLines.splice(i, 1);
+        var mLineElements = sdpLines[mLineIndex].split(' ');
+        // Scan from end for the convenience of removing an item.
+        for (var i = sdpLines.length - 1; i >= 0; i--) {
+            var payload = extractSdp(sdpLines[i], /a=rtpmap:(\d+) CN\/\d+/i);
+            if (payload) {
+                var cnPos = mLineElements.indexOf(payload);
+                if (cnPos !== -1) {
+                    // Remove CN payload from m line.
+                    mLineElements.splice(cnPos, 1);
+                }
+                // Remove CN line in sdp
+                sdpLines.splice(i, 1);
+            }
         }
-      }
 
-      sdpLines[mLineIndex] = mLineElements.join(' ');
-      return sdpLines;
+        sdpLines[mLineIndex] = mLineElements.join(' ');
+        return sdpLines;
     }
-    
+
 
     ////////////////////////////////////////////////
     // EXPORT PUBLIC FUNCTIONS
     ////////////////////////////////////////////////
-    
-    exports.joinRoom            =       joinRoom;
-    exports.toggleMic 			= 		toggleMic;
-    exports.toggleVideo			= 		toggleVideo;
-    exports.onLocalVideo        =       onLocalVideo;
-    exports.onRemoteVideo       =       onRemoteVideo;
-    exports.onChatReady 		= 		onChatReady;
-    exports.onChatNotReady 		= 		onChatNotReady;
-    exports.onChatMessage       =       onChatMessage;
-    exports.sendChatMessage     =       sendChatMessage;
-    exports.onParticipantHangup =		onParticipantHangup;
+
+    exports.joinRoom = joinRoom;
+    exports.toggleMic = toggleMic;
+    exports.toggleVideo = toggleVideo;
+    exports.onLocalVideo = onLocalVideo;
+    exports.onRemoteVideo = onRemoteVideo;
+    exports.onChatReady = onChatReady;
+    exports.onChatNotReady = onChatNotReady;
+    exports.onChatMessage = onChatMessage;
+    exports.sendChatMessage = sendChatMessage;
+    exports.onParticipantHangup = onParticipantHangup;
     return exports;
-    
+
 };
