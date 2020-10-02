@@ -21,7 +21,26 @@ var Meeting = function (socketioHost) {
                 "urls": "stun:your-aws-instance:3478?transport=tcp"
             }]
     };
-    var _constraints = { video: true, audio: true };
+    var _constraints = {
+	    video: {
+	      width: {ideal: 320},
+	      height: {ideal: 240},
+	      frameRate: {ideal: 20}
+	    },
+	    audio: {
+	      googEchoCancellation: true,
+	      googAutoGainControl: true,
+	      googNoiseSuppression: true,
+	      googHighpassFilter: true,
+	      googEchoCancellation2: true,
+	      googAutoGainControl2: true,
+	      googNoiseSuppression2: true
+	    },
+	    options: {
+	    mirror: true
+	    }
+	  };
+    }
     var _defaultChannel;
     var _privateAnswerChannel;
     var _offerChannels = {};
