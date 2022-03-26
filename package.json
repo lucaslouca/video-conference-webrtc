@@ -25,6 +25,6 @@
         "utf-8-validate": "^5.0.2",
         "cors": "^2.8.1",
         "winston": "*",
-        "minimist": ">=0.2.1"
+        "minimist": ">=1.2.6"
     }
 }
